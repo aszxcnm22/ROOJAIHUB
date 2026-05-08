@@ -63,60 +63,60 @@ export function useHealthData(connectedDevice: any) {
 				let transformedData = { ...fallbackData };
 
 				// 5. Map FastAPI Activity Data
-				if (activityRes && activityRes.data && activityRes.data.length > 0) {
-					const latestActivity = activityRes.data[0];
+				if (activityRes?.data?.length > 0) {
+					const a = activityRes.data[0];
 
 					const GOAL_STEPS = 10000;
-					const GOAL_ENERGY = 2000;
+					const GOAL_ENERGY = 600;   // active kcal goal, not total
 					const GOAL_ACTIVE_MINS = 60;
 
 					transformedData.activity = {
-						steps: formatK(latestActivity.steps || 0),
-						energy: (latestActivity.total_calories_kcal || 0).toString(),
-						active: (latestActivity.active_minutes || 0) + 'm',
+						steps: formatK(a.steps || 0),
+						energy: (a.active_calories_kcal || 0).toString(),
+						active: (a.active_minutes || 0) + 'm',
 
-						stepPct: Math.min(((latestActivity.steps || 0) / GOAL_STEPS) * 100, 100),
-						energyPct: Math.min(((latestActivity.total_calories_kcal || 0) / GOAL_ENERGY) * 100, 100),
-						activePct: Math.min(((latestActivity.active_minutes || 0) / GOAL_ACTIVE_MINS) * 100, 100)
+						stepPct: Math.min(((a.steps || 0) / GOAL_STEPS) * 100, 100),
+						energyPct: Math.min(((a.active_calories_kcal || 0) / GOAL_ENERGY) * 100, 100),
+						activePct: Math.min(((a.active_minutes || 0) / GOAL_ACTIVE_MINS) * 100, 100),
 					};
 				}
 
+
 				// 6. Map FastAPI Sleep Data
-				if (sleepRes && sleepRes.data && sleepRes.data.length > 0) {
-					const latestSleep = sleepRes.data[0];
+				if (sleepRes?.data?.length > 0) {
+					const s = sleepRes.data[0];
 
-					const inBedMins = latestSleep.time_in_bed_minutes || 0;
-					const durationMins = latestSleep.duration_minutes || 0;
-					const efficiency = latestSleep.efficiency_percent || 0;
+					const durationMins = s.duration_minutes || 0;
+					const inBedMins = s.time_in_bed_minutes || 0;
+					const efficiency = s.efficiency_percent || 0;
 
-					// Calculate sleep stage percentages for the UI Bar Chart
-					let stagesArray = [25, 25, 40, 10]; // Fallback mock percentages
+					let stagesArray = [25, 25, 40, 10];
 
-					if (latestSleep.stages) {
-						const { deep_minutes, light_minutes, rem_minutes, awake_minutes } = latestSleep.stages;
-						const totalStageMins = (deep_minutes + light_minutes + rem_minutes + awake_minutes) || 1; // Prevent divide by zero
+					if (s.stages) {
+						const { deep_minutes = 0, light_minutes = 0, rem_minutes = 0, awake_minutes = 0 } = s.stages;
+						const total = deep_minutes + light_minutes + rem_minutes + awake_minutes;
 
-						if (totalStageMins > 1) {
+						if (total > 0) {
 							stagesArray = [
-								(deep_minutes / totalStageMins) * 100,
-								(light_minutes / totalStageMins) * 100,
-								(rem_minutes / totalStageMins) * 100,
-								(awake_minutes / totalStageMins) * 100
+								(deep_minutes / total) * 100,
+								(light_minutes / total) * 100,
+								(rem_minutes / total) * 100,
+								(awake_minutes / total) * 100,
 							];
 						}
 					}
 
 					transformedData.sleep = {
-						time: formatDuration(inBedMins),
+						time: formatDuration(durationMins),
 						efficiency: `${Math.round(efficiency)}%`,
 						stages: stagesArray,
 						detailed: {
 							efficiency: `${Math.round(efficiency)}%`,
 							duration: formatDuration(durationMins),
 							timeInBed: formatDuration(inBedMins),
-							bedtime: formatTime(latestSleep.start_time),
-							wake: formatTime(latestSleep.end_time)
-						}
+							bedtime: formatTime(s.start_time),
+							wake: formatTime(s.end_time),
+						},
 					};
 				}
 
